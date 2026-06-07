@@ -12,7 +12,7 @@
 
 ## 🌐 Live Demo
 
-👉 **[Try it live here](https://your-app-link.streamlit.app)** ← *(replace with your Streamlit URL after deployment)*
+👉 👉 **[Try it live here](https://spam-classifier-balushetty07.streamlit.app/)** ← *(replace with your Streamlit URL after deployment)*
 
 ---
 
