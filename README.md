@@ -4,7 +4,6 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)
 ![NLP](https://img.shields.io/badge/NLP-TF--IDF-green?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 
 > An AI-powered web application that detects spam messages in real-time using Natural Language Processing and Machine Learning. Built as part of the AI/ML open elective project at **SJCE, Mysore (2024 Batch)**.
 
