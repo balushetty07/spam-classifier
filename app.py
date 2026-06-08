@@ -246,17 +246,17 @@ with st.sidebar:
     </a>
     """, unsafe_allow_html=True)
     
-    # Development Support Pills
+    # Development Support Pills - Updated with Shivaraj's GitHub Link
     st.markdown("**Development Support:**")
     st.markdown("""
     <div class="dev-pill">
         <span style="margin-right:10px; font-size: 16px;">👨‍💻</span>
         <b style="color:#FFFFFF; font-size: 14px;">Vijaya Kumar</b>
     </div>
-    <div class="dev-pill">
+    <a href="https://github.com/shivaraj57" target="_blank" class="dev-pill" style="text-decoration: none;">
         <span style="margin-right:10px; font-size: 16px;">👨‍💻</span>
         <b style="color:#FFFFFF; font-size: 14px;">Shivaraj PM</b>
-    </div>
+    </a>
     """, unsafe_allow_html=True)
     
     st.markdown("---")
