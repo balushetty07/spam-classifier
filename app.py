@@ -218,7 +218,7 @@ with st.sidebar:
 
 # --- 8. PAGE ROUTING: DASHBOARD ---
 if st.session_state.current_page == "Dashboard":
-    st.title("🛡️ Threat Detection Center")
+    st.title("🛡️ AI Spam Detector")
     
     st.markdown("### ⚙️ Engine Configuration")
     selected_engine = st.selectbox(
