@@ -1,215 +1,155 @@
 # 🛡️ Spam Email & SMS Classifier
-
+ 
 ![Python](https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge&logo=python)
 ![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)
 ![NLP](https://img.shields.io/badge/NLP-TF--IDF-green?style=for-the-badge)
-
-> An AI-powered web application that detects spam messages in real-time using Natural Language Processing and Machine Learning. Built as part of the AI/ML open elective project at **SJCE, Mysore (2024 Batch)**.
-
+![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)
+ 
+> An AI-powered web app that detects spam SMS/email in real-time, with a dual-engine ML dashboard, SQL-backed analytics, and a glassmorphism dark UI. Built as part of the AI/ML open elective project at **SJCE, Mysore (2024 Batch)**.
+ 
 ---
-
+ 
 ## 🌐 Live Demo
-
-👉 👉 **[Try it live here](https://spam-classifier-balushetty07.streamlit.app/)** 
-
+👉 **[Try it live here](https://spam-classifier-balushetty07.streamlit.app/)**
+ 
 ---
-
+ 
 ## 📌 What This Project Does
-
-Every day, millions of spam messages flood SMS inboxes and email clients — fake lottery wins, phishing links, scam promotions. Traditional filters based on keyword lists fail because spammers constantly change their wording.
-
-This project solves that using **Machine Learning** — instead of memorizing bad words, the model *mathematically learns the pattern* of spam from thousands of real examples. It can catch brand-new spam it has never seen before.
-
+ 
+Spam filters based on keyword blocklists fail because attackers keep changing wording. This project instead uses ML to **learn the pattern** of spam from thousands of real messages.
+ 
 **Key features:**
-- Paste any SMS or email text → instantly know if it's spam or safe
-- Shows exact spam probability percentage (not just yes/no)
-- Detects suspicious links automatically
-- Session history with CSV download
-- Fully responsive dark-mode UI
-
+- 🧠 **Dual engine** — switch between Naive Bayes and Logistic Regression at runtime
+- 📊 Instant spam probability score (not just yes/no)
+- 🔗 Automatic suspicious-link detection
+- 🗄️ Every scan logged to a persistent **SQLite** database (`history.db`)
+- 📈 Built-in **Analytics Dashboard** — total scans, threats blocked, clean passed, bar chart
+- 🚩 Admin tool to flag misclassified rows (for future retraining)
+- 🕒 Live session history on the main page
+- 🎨 Fully responsive glassmorphism dark-mode UI
 ---
-
-## 🧠 How It Works — Step by Step
-
+ 
+## 🧠 How It Works
+ 
 ### 1. Data Collection
-- Dataset: [SMS Spam Collection Dataset](https://www.kaggle.com/datasets/uciml/sms-spam-collection-dataset) from UCI / Kaggle
-- 5,574 real SMS messages labelled as **ham** (safe) or **spam**
-- Dataset breakdown: ~87% ham, ~13% spam
-
+- Dataset: [SMS Spam Collection Dataset](https://www.kaggle.com/datasets/uciml/sms-spam-collection-dataset) (UCI/Kaggle) — 5,574 messages, ~87% ham / ~13% spam
 ### 2. Text Preprocessing
-Raw text is messy — full of punctuation, random caps, links. We clean it up:
-- Convert everything to **lowercase**
-- Detect and tag **URLs** as `suspiciouslink` token (a strong spam signal)
-- Remove punctuation and symbols
-- **Keep numbers** — amounts like "1000", "50%" are huge spam signals
-
 ```python
 def clean_text(text):
     text = text.lower()
     text = re.sub(r'https?://\S+', ' suspiciouslink ', text)
-    text = re.sub(r'[^a-z0-9\s]', '', text)  # keep numbers!
+    text = re.sub(r'[^a-z0-9\s]', '', text)  # numbers kept — strong spam signal
     return text
 ```
-
+- Lowercases text, tags URLs as `suspiciouslink`, strips punctuation, **keeps digits** (amounts/codes are strong spam signals)
 ### 3. TF-IDF Vectorization
-Converts cleaned text into numbers the model can understand.
-
-- **TF (Term Frequency)** — how often a word appears in THIS message
-- **IDF (Inverse Document Frequency)** — how rare the word is across ALL messages
-- Words like "FREE", "WIN", "prize" get high scores in spam → model learns this
-
-### 4. Model Training
-
-Two models were trained and compared:
-
-| Model | Accuracy | Notes |
+Converts cleaned text to numeric features — rare, spam-heavy words (e.g. "free", "win", "prize") get high weights.
+ 
+### 4. Model Training — Two Engines, One App
+ 
+| Model | Accuracy | Role |
 |---|---|---|
-| **Multinomial Naive Bayes** ✅ | ~97% | Chosen for production — fast, lightweight |
-| Logistic Regression | ~96% | Used as validation baseline |
-
-**Key fix applied:** The dataset has 87% ham so by default the model was biased toward always saying "safe". We fixed this by setting `class_prior=[0.45, 0.55]` to make the model take spam seriously.
-
-### 5. Performance Evaluation
-
-Evaluated using standard ML metrics:
-
-- **Accuracy** — Overall correct predictions
-- **Precision** — Of all messages flagged as spam, how many were actually spam?
-- **Recall** — Of all actual spam messages, how many did we catch?
-- **F1-Score** — Balance between Precision and Recall
-- **Confusion Matrix** — Visual breakdown of correct vs incorrect predictions
-
-### 6. Streamlit Web App
-The trained model is deployed as an interactive web app where users can paste any message and get an instant prediction with spam probability score.
-
-**Custom threshold:** Instead of the default 50% threshold, we use **35%** — this ensures borderline spam messages are caught without letting too much through.
-
+| **Multinomial Naive Bayes** ✅ | ~97% | Default production engine — fast & lightweight |
+| **Logistic Regression** | ~96% | Selectable alternate engine, `class_weight='balanced'` |
+ 
+**Key fix:** dataset is 87% ham, so Naive Bayes was biased toward "safe" by default. Fixed with `class_prior=[0.45, 0.55]`.
+ 
+### 5. Decision Threshold
+Default 50% threshold missed borderline spam → lowered to **35%** `spam_prob` cutoff in the app.
+ 
+### 6. Streamlit Dashboard (3 pages)
+- **Classifier** — paste a message, pick an engine, get an instant verdict + probability, auto-saved to SQLite
+- **Database** — analytics on all historical scans (totals, chart, raw log, misclassification flagging)
+- **About** — project rationale, architecture, and benchmark write-up
 ---
-
+ 
 ## 🗂️ Project Structure
-
 ```
 spam-classifier/
 │
-├── app.py               # Streamlit web application (UI + prediction logic)
-├── classifier.py        # ML pipeline (data loading, training, model export)
+├── app.py               # Streamlit app — UI, dual-engine prediction, SQLite logging, analytics
+├── classifier.py        # ML pipeline — data loading, training, model export
 ├── requirements.txt     # Python dependencies
-├── spam_model.pkl       # Trained Naive Bayes model (generated by classifier.py)
-├── vectorizer.pkl       # Fitted TF-IDF vectorizer (generated by classifier.py)
-└── .gitignore           # Ignores spam.csv and other local files
+├── spam_model.pkl       # Trained Naive Bayes model
+├── lr_model.pkl         # Trained Logistic Regression model
+├── vectorizer.pkl       # Fitted TF-IDF vectorizer
+├── history.db           # SQLite database (auto-created on first run)
+└── .gitignore
 ```
-
-> **Note:** `spam.csv` is NOT included in this repo (too large). Download it from [Kaggle](https://www.kaggle.com/datasets/uciml/sms-spam-collection-dataset) if you want to retrain the model.
-
+> `spam.csv` is not included (too large) — download from [Kaggle](https://www.kaggle.com/datasets/uciml/sms-spam-collection-dataset) to retrain.
+ 
 ---
-
+ 
 ## ⚙️ Tech Stack
-
 | Tool | Purpose |
 |---|---|
-| **Python 3.8+** | Core programming language |
-| **Pandas** | Data loading and manipulation |
-| **Scikit-learn** | TF-IDF vectorization, Naive Bayes, Logistic Regression, metrics |
-| **Streamlit** | Web application framework |
-| **Pickle** | Saving and loading trained models |
-| **Regex (re)** | Text preprocessing and URL detection |
-
+| Python 3.8+ | Core language |
+| Pandas | Data loading/manipulation |
+| Scikit-learn | TF-IDF, Naive Bayes, Logistic Regression, metrics |
+| Streamlit | Web app framework & multi-page dashboard |
+| SQLite3 | Persistent scan history & analytics |
+| Pickle | Model serialization |
+| Regex (re) | Text cleaning & URL detection |
+ 
 ---
-
-## 🚀 Run This Project Locally
-
-### Step 1 — Clone the repository
+ 
+## 🚀 Run Locally
+ 
 ```bash
 git clone https://github.com/balushetty07/spam-classifier.git
 cd spam-classifier
-```
-
-### Step 2 — Install dependencies
-```bash
 pip install -r requirements.txt
 ```
-
-### Step 3 — (Optional) Retrain the model
-Only needed if you want to retrain from scratch. Download `spam.csv` from Kaggle first, update the file path in `classifier.py`, then:
+ 
+Optional — retrain from scratch (needs `spam.csv` from Kaggle):
 ```bash
 python classifier.py
 ```
-This generates fresh `spam_model.pkl` and `vectorizer.pkl` files.
-
-### Step 4 — Run the web app
+ 
+Run the app:
 ```bash
 streamlit run app.py
 ```
-
-Open your browser at `http://localhost:8501` 🎉
-
+Open `http://localhost:8501` 🎉
+ 
 ---
-
-## 📊 Sample Results
-
-```
---- Naive Bayes Performance ---
-
-Confusion Matrix:
-          Ham    Spam
-Ham       965      0
-Spam        9    141
-
-Classification Report:
-              Precision  Recall  F1-Score
-Ham              0.99     1.00      1.00
-Spam             1.00     0.94      0.97
-
-Overall Accuracy: 98.83%
-```
-
----
-
-## 💡 Key Problems We Solved
-
-| Problem | Root Cause | Fix Applied |
+ 
+## 💡 Key Problems Solved
+| Problem | Cause | Fix |
 |---|---|---|
-| Spam flagged as safe | Numbers (1000, 50%) were being deleted during cleaning | Changed regex from `[^a-z\s]` to `[^a-z0-9\s]` |
-| Model biased toward "safe" | Dataset is 87% ham, so model favored ham | Set `class_prior=[0.45, 0.55]` in Naive Bayes |
-| Borderline spam missed | Default 50% prediction threshold too high | Lowered threshold to 35% using `predict_proba` |
-| URLs ignored | Links not detected during training | Added URL → `suspiciouslink` token in preprocessing |
-
+| Spam flagged as safe | Numbers deleted during cleaning | Regex changed to `[^a-z0-9\s]` |
+| Model biased toward "safe" | 87% ham in dataset | `class_prior=[0.45, 0.55]` |
+| Borderline spam missed | 50% threshold too high | Lowered to 35% |
+| URLs ignored | Not tagged during training | `suspiciouslink` token |
+| No visibility into past scans | No persistence layer | Added SQLite logging + analytics dashboard |
+ 
 ---
-
+ 
 ## 🔮 Future Scope
-
-- Integrate deep learning models (LSTM, BERT) for higher accuracy
-- Add multilingual spam detection
-- Detect phishing URLs by actually checking the link
-- Real-time integration with email/SMS APIs
-- Lightweight model for embedded/IoT devices
-
+- Deep learning models (LSTM, BERT)
+- Multilingual spam detection
+- Real phishing-URL verification (not just detection)
+- Live email/SMS API integration
+- Lightweight model variant for IoT/embedded devices
 ---
-
+ 
 ## 👨‍💻 Team
-
 | Name | Role |
 |---|---|
-| **Balu S** | Main Developer — ML pipeline, web app, deployment |
+| **Balu S** | Main Developer — ML pipeline, dashboard, deployment |
 | **Vijaya Kumar** | Development Support |
 | **Shivaraj PM** | Development Support |
-
-**Institution:** Sri Jayachamarajendra College of Engineering (SJCE), Mysore
-**Department:** Electronics & Communication Engineering (ECE)
-**Semester:** 4th Semester, 2024 Batch
-**Subject:** AI/ML Open Elective
-
+ 
+**Institution:** SJCE, Mysore | **Dept:** ECE | **Semester:** 4th, 2024 Batch | **Subject:** AI/ML Open Elective
+ 
 ---
-
+ 
 ## 📚 References
-
 1. Almeida et al., *Contributions to the Study of SMS Spam Filtering*, ACM 2011
 2. Joachims T., *Text Categorization with Support Vector Machines*, ECML 1998
 3. Pedregosa et al., *Scikit-learn: Machine Learning in Python*, JMLR 2011
 4. [SMS Spam Collection Dataset — UCI ML Repository](https://archive.ics.uci.edu/ml/datasets/sms+spam+collection)
 5. Jurafsky & Martin, *Speech and Language Processing*, Pearson 2021
-
 ---
-
 <p align="center">Made with ❤️ by Balu S | SJCE Mysore</p>
