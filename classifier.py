@@ -152,17 +152,21 @@ print(classification_report(y_test, lr_predictions, target_names=['Ham', 'Spam']
 
 
 # === STEP 7: SAVE MODELS ===
-# Save the Naive Bayes model (used by app.py)
+# Save the Naive Bayes model
 with open('spam_model.pkl', 'wb') as model_file:
     pickle.dump(nb_model, model_file)
 
-# Save the TF-IDF Vectorizer (MUST be saved — app.py needs this!)
+# Save the TF-IDF Vectorizer
 with open('vectorizer.pkl', 'wb') as vec_file:
     pickle.dump(tfidf, vec_file)
+
+# 🛠️ THE MODIFICATION: Save the Logistic Regression model for the new Dashboard!
+with open('lr_model.pkl', 'wb') as lr_file:
+    pickle.dump(lr_model, lr_file)
 
 print("\n" + "="*55)
 print("  ✅ EXPORT COMPLETE!")
 print("  spam_model.pkl  — Naive Bayes model saved")
+print("  lr_model.pkl    — Logistic Regression model saved (NEW!)")
 print("  vectorizer.pkl  — TF-IDF vectorizer saved")
-print("  Both files ready for app.py!")
 print("="*55)
