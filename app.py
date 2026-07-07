@@ -1,14 +1,47 @@
-import streamlit as st
+import os
 import pickle
 import re
-import pandas as pd
 import time
+# 🛠️ SQL DATABASE INJECTIONS
+import sqlite3
+from datetime import datetime
+import pandas as pd
+import streamlit as st
 
 # --- 1. Page Configuration ---
-st.set_page_config(page_title="Spam SMS Classifier", page_icon="🛡️", layout="centered", initial_sidebar_state="expanded")
+st.set_page_config(
+    page_title="Spam SMS Classifier",
+    page_icon="🛡️",
+    layout="centered",
+    initial_sidebar_state="expanded",
+)
+
+# 🛠️ SYSTEM FIX: Create a bulletproof absolute path for the database file
+DB_PATH = os.path.join(os.path.dirname(__file__), "history.db")
+
+
+# 🛠️ SQL DATABASE INJECTION: Initialize table structure
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS message_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT,
+            message TEXT,
+            prediction TEXT,
+            confidence TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+init_db()  # Safely boot up database table
 
 # --- 2. Locked Dark Mode CSS Injection (Cosmic Indigo Theme) ---
-st.markdown("""
+st.markdown(
+    """
     <style>
     @font-face {
         font-family: 'Google Sans';
@@ -161,94 +194,108 @@ st.markdown("""
     }
     textarea { color: #FFFFFF !important; }
     </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # --- 2.5 Inject Bottom Right GitHub Pill ---
-st.markdown("""
+st.markdown(
+    """
     <a href="https://github.com/balushetty07" target="_blank" class="github-pill">
         <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="22" style="margin-right:8px; filter: invert(1);">
         <b style="color:#FFFFFF; font-size: 15px;">Balu S</b>
     </a>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
+
 
 # --- 3. Text Preprocessing Engine ---
-# ================================================================
-#  FIX 1: Keep numbers in clean_text!
-#  Numbers are huge spam signals: "WIN 1000", "FREE 50%", "0800"
-#  Old code: r'[^a-z\s]'    <- was nuking all numbers!
-#  New code: r'[^a-z0-9\s]' <- numbers survive the cleaning!
-#
-#  This function is now 100% SYNCED with classifier.py's
-#  clean_text so training and inference use identical preprocessing.
-# ================================================================
 def clean_text(text):
     text = str(text).lower()
-    # Detect URLs and replace with 'suspiciouslink' spam-signal token
-    text = re.sub(r'https?://\S+', ' suspiciouslink ', text)
-    text = re.sub(r'www\.\S+', ' suspiciouslink ', text)
-    text = re.sub(r'\[.*?\]|\b[a-zA-Z0-9.-]+\.(com|org|net|info|biz|co)\b', ' suspiciouslink ', text)
-    # FIX: Keep letters AND numbers, remove only symbols/punctuation
-    text = re.sub(r'[^a-z0-9\s]', '', text)
+    text = re.sub(r"https?://\S+", " suspiciouslink ", text)
+    text = re.sub(r"www\.\S+", " suspiciouslink ", text)
+    text = re.sub(
+        r"\[.*?\]|\b[a-zA-Z0-9.-]+\.(com|org|net|info|biz|co)\b",
+        " suspiciouslink ",
+        text,
+    )
+    text = re.sub(r"[^a-z0-9\s]", "", text)
     return text
+
 
 # --- 4. Load Models ---
 @st.cache_resource
 def load_models():
-    with open('spam_model.pkl', 'rb') as model_file:
+    with open("spam_model.pkl", "rb") as model_file:
         model = pickle.load(model_file)
-    with open('vectorizer.pkl', 'rb') as vec_file:
+    with open("vectorizer.pkl", "rb") as vec_file:
         vectorizer = pickle.load(vec_file)
     return model, vectorizer
+
 
 model, vectorizer = load_models()
 
 # --- 5. Memory & Routing ---
-if 'history' not in st.session_state:
+if "history" not in st.session_state:
     st.session_state.history = []
-if 'current_page' not in st.session_state:
+if "current_page" not in st.session_state:
     st.session_state.current_page = "Dashboard"
 
 # --- 6. Sidebar Menu & Navigation ---
 with st.sidebar:
     st.title("⚙️ System Menu")
     st.markdown("### 🧭 Navigation")
-    
+
     if st.button("📊 Dashboard", use_container_width=True):
         st.session_state.current_page = "Dashboard"
         st.rerun()
-        
+
     if st.button("📖 About System", use_container_width=True):
         st.session_state.current_page = "About"
         st.rerun()
 
+    # 🛠️ SQL DATABASE INJECTION: Database sub-panel tab
+    if st.button("🗄️ SQL Database Admin", use_container_width=True):
+        st.session_state.current_page = "Database"
+        st.rerun()
+
     st.markdown("---")
-    
+
     st.subheader("📁 Session Management")
     if st.session_state.history:
         df_history = pd.DataFrame(st.session_state.history)
-        csv = df_history.to_csv(index=False).encode('utf-8')
-        st.download_button(label="📥 Download Session CSV", data=csv, file_name='spam_report.csv', mime='text/csv', use_container_width=True)
+        csv = df_history.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="📥 Download Session CSV",
+            data=csv,
+            file_name="spam_report.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
         if st.button("🗑️ Clear History", use_container_width=True):
             st.session_state.history = []
             st.rerun()
     else:
         st.info("Run a scan to generate a report.")
-        
+
     st.markdown("---")
     st.subheader("👨‍💻 Project Team")
     st.markdown("**Main Developer:**")
-    
-    # Main Developer Pill
-    st.markdown("""
+
+    st.markdown(
+        """
     <a href="https://github.com/balushetty07" target="_blank" class="menu-pill">
         <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="20" style="margin-right:10px; filter: invert(1);">
         <b style="color:#FFFFFF; font-size: 15px;">Balu S</b>
     </a>
-    """, unsafe_allow_html=True)
-    
-    # Development Support Pills - Updated with Shivaraj's GitHub Link
+    """,
+        unsafe_allow_html=True,
+    )
+
     st.markdown("**Development Support:**")
-    st.markdown("""
+    st.markdown(
+        """
     <div class="dev-pill">
         <span style="margin-right:10px; font-size: 16px;">👨‍💻</span>
         <b style="color:#FFFFFF; font-size: 14px;">Vijaya Kumar</b>
@@ -257,18 +304,29 @@ with st.sidebar:
         <span style="margin-right:10px; font-size: 16px;">👨‍💻</span>
         <b style="color:#FFFFFF; font-size: 14px;">Shivaraj PM</b>
     </a>
-    """, unsafe_allow_html=True)
-    
+    """,
+        unsafe_allow_html=True,
+    )
+
     st.markdown("---")
-    st.warning("Disclaimer: This AI Spam Shield is an educational engineering project designed to demonstrate Natural Language Processing and Machine Learning classification techniques. It is not a commercial security product. Please do not input sensitive personal information, real passwords, banking details, or corporate data into this system. Use at your own risk.")
+    st.warning(
+        "Disclaimer: This AI Spam Shield is an educational engineering project designed to demonstrate Natural Language Processing and Machine Learning classification techniques. It is not a commercial security product. Please do not input sensitive personal information, real passwords, banking details, or corporate data into this system. Use at your own risk."
+    )
 
 # --- 7. PAGE ROUTING LOGIC ---
 if st.session_state.current_page == "Dashboard":
-    
-    st.title("🛡️ Spam SMS Classifier")
-    st.markdown("Enter a message below. The NLP engine will calculate the mathematical probability of a phishing or spam attempt.")
 
-    user_input = st.text_area("Message Content", placeholder="Paste email, SMS, or suspicious link here...", height=150, label_visibility="collapsed")
+    st.title("🛡️ Spam SMS Classifier")
+    st.markdown(
+        "Enter a message below. The NLP engine will calculate the mathematical probability of a phishing or spam attempt."
+    )
+
+    user_input = st.text_area(
+        "Message Content",
+        placeholder="Paste email, SMS, or suspicious link here...",
+        height=150,
+        label_visibility="collapsed",
+    )
 
     if st.button("🔍 Scan for Threats", use_container_width=True):
         if user_input.strip() == "":
@@ -276,47 +334,64 @@ if st.session_state.current_page == "Dashboard":
         else:
             st.toast("Initiating NLP text vectorization...", icon="⏳")
             time.sleep(0.3)
-            
+
             with st.spinner("Calculating mathematical probabilities..."):
                 cleaned_input = clean_text(user_input)
                 input_vector = vectorizer.transform([cleaned_input])
-                
-                # We only need probabilities — NOT model.predict()
-                # model.predict() uses 50% default threshold which
-                # causes spam to be missed. We use 35% instead.
+
                 probabilities = model.predict_proba(input_vector)[0]
-                
+
                 safe_prob = probabilities[0] * 100
                 spam_prob = probabilities[1] * 100
                 confidence = max(safe_prob, spam_prob)
-                
+
                 st.toast("Scan complete!", icon="✅")
-            
+
             st.markdown("---")
             col1, col2 = st.columns(2)
             col1.metric(label="🟢 Clean Probability", value=f"{safe_prob:.2f}%")
             col2.metric(label="🔴 Spam Probability", value=f"{spam_prob:.2f}%")
-            
-            # ================================================================
-            #  FIX 2: Lowered spam detection threshold from 50% → 35%
-            #
-            #  Old code: if prediction == 1   (model.predict default = 50%)
-            #  New code: if spam_prob >= 35   (our custom threshold = 35%)
-            #
-            #  Why? The dataset is 87% ham / 13% spam so the model was
-            #  trained on very few spam examples. It needed >50% confidence
-            #  to flag something as spam which was too high a bar. Lowering
-            #  to 35% means borderline spam messages get caught correctly.
-            # ================================================================
+
             if spam_prob >= 35:
+                status_label = "SPAM 🚨"
                 st.error("🚨 **CRITICAL THREAT DETECTED**")
-                st.info("The system has flagged this content as highly suspicious. Do not click any links or provide personal information.")
-                st.session_state.history.insert(0, {"Message": user_input, "Status": "SPAM 🚨", "Confidence": f"{confidence:.2f}%", "Timestamp": time.strftime("%H:%M:%S")})
+                st.info(
+                    "The system has flagged this content as highly suspicious. Do not click any links or provide personal information."
+                )
             else:
+                status_label = "CLEAN ✅"
                 st.success("✅ **CLEAN MESSAGE**")
-                st.info("No malicious patterns detected in the text structure or vocabulary.")
-                st.session_state.history.insert(0, {"Message": user_input, "Status": "CLEAN ✅", "Confidence": f"{confidence:.2f}%", "Timestamp": time.strftime("%H:%M:%S")})
-            
+                st.info(
+                    "No malicious patterns detected in the text structure or vocabulary."
+                )
+
+            st.session_state.history.insert(
+                0,
+                {
+                    "Message": user_input,
+                    "Status": status_label,
+                    "Confidence": f"{confidence:.2f}%",
+                    "Timestamp": time.strftime("%H:%M:%S"),
+                },
+            )
+
+            # 🛠️ SQL DATABASE INJECTION: Insert using the bulletproof DB_PATH
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO message_log (timestamp, message, prediction, confidence) VALUES (?, ?, ?, ?)",
+                (
+                    current_time,
+                    user_input,
+                    status_label,
+                    f"{confidence:.2f}%",
+                ),
+            )
+            conn.commit()
+            conn.close()
+            st.success("💾 Row permanently saved inside SQLite Database!")
+
             with st.expander("⚙️ View Technical Analysis"):
                 st.write(f"**Raw Input Length:** {len(user_input)} characters")
                 st.write(f"**Cleaned NLP Tokens:** `{cleaned_input}`")
@@ -324,7 +399,6 @@ if st.session_state.current_page == "Dashboard":
                 st.write("**🧠 Comparative Model Architecture:**")
                 st.write("✅ **Active Production Model:** Multinomial Naive Bayes")
                 st.write("✅ **Validation Baseline Model:** Logistic Regression")
-                st.caption("To guarantee maximum accuracy, this system was developed using a dual-model architecture. The Naive Bayes algorithm actively drives the real-time predictions on the live server, while the Logistic Regression model served as the statistical baseline to validate the results during local development.")
 
     if st.session_state.history:
         st.markdown("---")
@@ -340,46 +414,26 @@ if st.session_state.current_page == "Dashboard":
 elif st.session_state.current_page == "About":
     st.title("📖 System Documentation")
     st.markdown("---")
-    
-    st.markdown("### 🌍 The Threat Landscape: Why is this system required?")
+    st.markdown("### 🌍 The Threat Landscape")
     st.write(
-        "In today's hyper-connected digital economy, communication channels like SMS and email are the primary attack vectors for cybercriminals. "
-        "We are witnessing an exponential rise in **Social Engineering**, **Spear-Phishing**, and **Smishing (SMS Phishing)** attacks. "
-        "Malicious actors are no longer just sending obvious junk mail; they use sophisticated, psychologically manipulative text to steal financial credentials, "
-        "distribute malware, and commit identity fraud."
+        "This system serves as an educational engineering project showcasing Natural Language Processing."
     )
-    st.write(
-        "Traditional security systems rely on static 'blocklists' (blocking known bad numbers or hardcoded links). These legacy systems fail entirely because attackers "
-        "can generate thousands of new numbers and domains instantly. **This is why an AI-driven, Machine Learning approach is strictly required.** "
-        "Instead of memorizing bad links, our NLP system mathematically learns the underlying behavioral patterns and vocabulary of a scam, allowing it to intercept "
-        "brand new, zero-day phishing attacks before they ever reach the user."
+
+# 🛠️ SQL DATABASE INJECTION: Render panel using bulletproof DB_PATH query reads
+elif st.session_state.current_page == "Database":
+    st.title("🗄️ SQL Database Admin Control Panel")
+    st.markdown(
+        "This panel reads directly from the persistent SQLite instance (**`history.db`**)."
     )
-    
-    st.markdown("### ⚡ Computational Efficiency & Real-Time Processing")
-    st.write(
-        "For a cybersecurity firewall to be viable, it must be highly accurate and computationally lightweight. This system was engineered specifically for "
-        "high-speed, real-time threat detection."
-    )
-    
-    st.markdown("""
-    * **Algorithmic Speed:** By deploying **Multinomial Naive Bayes** as the production model, the system achieves an incredibly low time-complexity of **O(N)**. It calculates probability distributions using simple mathematical products, allowing it to classify large blocks of text in milliseconds without requiring massive server infrastructure.
-    * **Precision-Recall Balance:** The model uses a custom detection threshold tuned for optimal spam recall without excessive false positives — ensuring genuine spam is caught while legitimate messages remain unaffected.
-    * **Dynamic Vectorization:** The TF-IDF (Term Frequency-Inverse Document Frequency) engine instantly drops useless English "stop words" and assigns heavy mathematical weights to structural threat indicators including suspicious links, amounts, and spam keywords. This makes the classification highly efficient, even if attackers attempt to bypass filters using typos or masked text.
-    """)
-    
-    st.markdown("### 🧠 Comparative Model Architecture")
-    st.markdown("""
-    * **Data Preprocessing & Cleansing:** Scrubs raw text data to normalize inputs while preserving numerical spam signals.
-    * **URL Detection:** Detects and tags suspicious links as a dedicated spam-signal token before vectorization.
-    * **TF-IDF Vectorization:** Evaluates how frequently a word appears relative to the entire dataset.
-    * **Probabilistic Classification (Naive Bayes):** The production model calculates the statistical probability of a threat using a calibrated class prior.
-    * **Comparative Baseline (Logistic Regression):** Evaluated against a Logistic Regression baseline to ensure boundary accuracy.
-    """)
-    
-    st.markdown("### 📊 Performance Metrics")
-    st.info(
-        "**Benchmark Accuracy: 96.86%**\n\n"
-        "The system was rigorously trained on the globally recognized *SMS Spam Collection Dataset*. "
-        "To guarantee maximum reliability, the live Naive Bayes model was cross-validated against a **Logistic Regression** baseline. "
-        "While Logistic Regression maps decision boundaries using complex log-odds, Naive Bayes proved vastly superior in handling the high-dimensional, sparse data generated by text vectors, resulting in faster and more accurate real-time classification."
-    )
+
+    if st.button("🔄 Refresh Data From SQL", use_container_width=True):
+        conn = sqlite3.connect(DB_PATH)
+        df_sql = pd.read_sql_query(
+            "SELECT * FROM message_log ORDER BY id DESC", conn
+        )
+        conn.close()
+
+        if not df_sql.empty:
+            st.dataframe(df_sql, use_container_width=True)
+        else:
+            st.info("The SQL Database table is currently empty.")
